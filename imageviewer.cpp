@@ -52,11 +52,11 @@ ImageViewer::ImageViewer(QWidget *parent)
 
     scrollAreaOriginal->setWidget(imageLabel);
     scrollAreaOriginal->setAlignment(Qt::AlignCenter);
-    scrollAreaOriginal->setWidgetResizable(true);
+    scrollAreaOriginal->setWidgetResizable(false);
 
     scrollAreaProcessed->setWidget(resultLabel);
     scrollAreaProcessed->setAlignment(Qt::AlignCenter);
-    scrollAreaProcessed->setWidgetResizable(true);
+    scrollAreaProcessed->setWidgetResizable(false);
 
     // Definir os layouts de cada caixa
     QVBoxLayout *originalLayout = new QVBoxLayout;
@@ -80,10 +80,6 @@ ImageViewer::ImageViewer(QWidget *parent)
     createActions();
     resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);
 }
-
-
-
-
 
 bool ImageViewer::loadFile(const QString &fileName)
 {
@@ -115,7 +111,7 @@ void ImageViewer::setImage(const QImage &newImage)
         image.convertToColorSpace(QColorSpace::SRgb);
 
     // Definir um tamanho máximo para a imagem dentro da janela, caso necessário
-    const QSize maxSize = QSize(920, 920);
+    const QSize maxSize = QSize(800, 720);
     const QSize imageSize = image.size();
 
     // Se a imagem for maior que o tamanho máximo, redimensiona mantendo a proporção
@@ -137,17 +133,22 @@ void ImageViewer::setImage(const QImage &newImage)
     scrollAreaResult->setWidgetResizable(true);
 
     // Redimensionar a janela para caber as imagens lado a lado
-    QSize newWindowSize = QSize(scaledImage.width() * 2 + 100, scaledImage.height() + 100); // Largura das duas imagens + espaço extra
+    QSize newWindowSize = QSize(scaledImage.width() * 2 + 150, scaledImage.height() + 150); // Largura das duas imagens + espaço extra
     this->resize(newWindowSize);
+
+    // Centralizar a janela na tela
+    QRect screenGeometry = QGuiApplication::primaryScreen()->availableGeometry();
+    int x = (screenGeometry.width() - this->width()) / 2;
+    int y = (screenGeometry.height() - this->height()) / 2;
+    this->move(x, y); // Mover a janela para o centro da tela
 
     // Garantir que o layout se ajuste ao novo tamanho das imagens
     centralWidget()->adjustSize();
+    
+    scaleFactor = 1.0;
 
     updateActions();
 }
-
-
-
 
 
 bool ImageViewer::saveFile(const QString &fileName)
@@ -284,6 +285,7 @@ void ImageViewer::zoomOut()
 void ImageViewer::normalSize()
 {
     imageLabel->adjustSize();
+    resultLabel->adjustSize();
     scaleFactor = 1.0;
 }
 
@@ -381,13 +383,21 @@ void ImageViewer::scaleImage(double factor)
 {
     scaleFactor *= factor;
     imageLabel->resize(scaleFactor * imageLabel->pixmap(Qt::ReturnByValue).size());
+    resultLabel->resize(scaleFactor * resultLabel->pixmap(Qt::ReturnByValue).size());
 
+    // Ajustar as barras de rolagem da imagem original
     adjustScrollBar(scrollArea->horizontalScrollBar(), factor);
     adjustScrollBar(scrollArea->verticalScrollBar(), factor);
 
+    // Ajustar as barras de rolagem da imagem processada (caso seja necessário)
+    adjustScrollBar(scrollAreaResult->horizontalScrollBar(), factor);
+    adjustScrollBar(scrollAreaResult->verticalScrollBar(), factor);
+
+    // Atualizar os estados das ações
     zoomInAct->setEnabled(scaleFactor < 3.0);
     zoomOutAct->setEnabled(scaleFactor > 0.333);
 }
+
 
 void ImageViewer::adjustScrollBar(QScrollBar *scrollBar, double factor)
 {
