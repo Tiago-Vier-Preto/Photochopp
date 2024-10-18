@@ -32,7 +32,7 @@ ImageViewer::ImageViewer(QWidget *parent)
     : QMainWindow(parent), imageLabel(new QLabel), resultLabel(new QLabel)
     , scrollArea(new QScrollArea), scrollAreaResult(new QScrollArea)
 {
-    // Centralizar as imagens dentro dos QLabel
+
     imageLabel->setBackgroundRole(QPalette::Base);
     imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     imageLabel->setScaledContents(true);
@@ -42,11 +42,9 @@ ImageViewer::ImageViewer(QWidget *parent)
     resultLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     resultLabel->setScaledContents(true);
 
-    // Definir as caixas (group boxes) para as imagens
     QGroupBox *originalBox = new QGroupBox(tr("Original Image"));
     QGroupBox *processedBox = new QGroupBox(tr("Processed Image"));
 
-    // Adicionar ScrollAreas para permitir rolagem quando as imagens forem maiores
     QScrollArea *scrollAreaOriginal = new QScrollArea;
     QScrollArea *scrollAreaProcessed = new QScrollArea;
 
@@ -58,21 +56,20 @@ ImageViewer::ImageViewer(QWidget *parent)
     scrollAreaProcessed->setAlignment(Qt::AlignCenter);
     scrollAreaProcessed->setWidgetResizable(false);
 
-    // Definir os layouts de cada caixa
+    // Defines the layout for the group boxes
     QVBoxLayout *originalLayout = new QVBoxLayout;
-    originalLayout->addWidget(scrollAreaOriginal); // A imagem original vai aqui
+    originalLayout->addWidget(scrollAreaOriginal); //
     originalBox->setLayout(originalLayout);
 
     QVBoxLayout *processedLayout = new QVBoxLayout;
-    processedLayout->addWidget(scrollAreaProcessed); // A imagem processada vai aqui (ou a mesma imagem)
+    processedLayout->addWidget(scrollAreaProcessed); 
     processedBox->setLayout(processedLayout);
 
-    // Colocar as duas caixas lado a lado em um layout horizontal
     QHBoxLayout *mainLayout = new QHBoxLayout;
-    mainLayout->addWidget(originalBox); // Caixa da imagem original
-    mainLayout->addWidget(processedBox); // Caixa da imagem processada
+    mainLayout->addWidget(originalBox); // Original image box
+    mainLayout->addWidget(processedBox); // Processed image box
 
-    // Criar um widget central para manter o layout
+    // Creates the central widget
     QWidget *centralWidget = new QWidget(this);
     centralWidget->setLayout(mainLayout);
     setCentralWidget(centralWidget);
@@ -111,39 +108,33 @@ void ImageViewer::setImage(const QImage &newImage)
     if (image.colorSpace().isValid())
         image.convertToColorSpace(QColorSpace::SRgb);
 
-    // Definir um tamanho máximo para a imagem dentro da janela, caso necessário
+    // Defines the maximum size for the images
     const QSize maxSize = QSize(800, 720);
     const QSize imageSize = image.size();
 
-    // Se a imagem for maior que o tamanho máximo, redimensiona mantendo a proporção
     QImage scaledImage = image;
     if (imageSize.width() > maxSize.width() || imageSize.height() > maxSize.height()) {
         scaledImage = image.scaled(maxSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
-    // Definir a imagem original e processada (por enquanto, a mesma imagem)
     imageLabel->setPixmap(QPixmap::fromImage(scaledImage));
     imageLabel->adjustSize();
 
-    resultLabel->setPixmap(QPixmap::fromImage(scaledImage)); // Pode ser diferente se processada
+    resultLabel->setPixmap(QPixmap::fromImage(scaledImage));
     resultLabel->adjustSize();
-    // Redimensionar as labels para ajustar ao tamanho das imagens
 
-    // Atualizar as áreas de rolagem para ajustar ao tamanho das labels
     //scrollArea->setWidgetResizable(true);
     //scrollAreaResult->setWidgetResizable(true);
 
-    // Redimensionar a janela para caber as imagens lado a lado
     QSize newWindowSize = QSize(scaledImage.width() * 2 + 150, scaledImage.height() + 150); // Largura das duas imagens + espaço extra
     this->resize(newWindowSize);
 
-    // Centralizar a janela na tela
+    // Center the window on the screen
     QRect screenGeometry = QGuiApplication::primaryScreen()->availableGeometry();
     int x = (screenGeometry.width() - this->width()) / 2;
     int y = (screenGeometry.height() - this->height()) / 2;
-    this->move(x, y); // Mover a janela para o centro da tela
+    this->move(x, y); 
 
-    // Garantir que o layout se ajuste ao novo tamanho das imagens
     centralWidget()->adjustSize();
 
     flipHorizontallyAct->setEnabled(true);
@@ -445,7 +436,7 @@ void ImageViewer::greyScaleQuantization()
         return;
     }
 
-    // Solicitar o número de níveis
+    // Ask the user for the number of levels
     QString input = QInputDialog::getText(this, tr("Quantization"), tr("Enter the number of levels:"));
     int n = input.toInt();
 
@@ -459,7 +450,7 @@ void ImageViewer::greyScaleQuantization()
     int t1 = INT_MAX;
     int t2 = INT_MIN;
 
-    // Encontrar o menor (t1) e maior tom (t2)
+    // Finds the minimum and maximum shades of grey in the image
     for (int i = 0; i < greyImage.width(); i++) {
         for (int j = 0; j < greyImage.height(); j++) {
             QRgb pixel = greyImage.pixel(i, j);
@@ -475,21 +466,20 @@ void ImageViewer::greyScaleQuantization()
 
     int tam_int = t2 - t1 + 1;
 
-    // Se n >= tam_int, não há necessidade de quantização
+    // if the number of levels is greater than the number of shades of grey, return
     if (n >= tam_int) return;
 
-    // Calcular o tamanho do bin (tb)
+    // Calculates the size of each bin
     float tb = (float) tam_int / n;
 
-    // Quantização da imagem
     for (int i = 0; i < greyImage.width(); i++) {
         for (int j = 0; j < greyImage.height(); j++) {
             QRgb pixel = greyImage.pixel(i, j);
             int value = qGray(pixel);
 
-            // Calcular o bin correspondente e o valor quantizado
-            int bin = (value - t1) / tb;
-            int new_value = t1 + bin * tb + tb / 2;
+            int bin = (value - t1 + 0.5) / tb;
+
+            int new_value = t1 - 0.5 + (bin + 0.5) * tb;
 
             greyImage.setPixel(i, j, qRgb(new_value, new_value, new_value));
         }
@@ -499,6 +489,7 @@ void ImageViewer::greyScaleQuantization()
     resultLabel->setPixmap(QPixmap::fromImage(resultImage));
     resultLabel->adjustSize();
 }
+
 
 void ImageViewer::resetImage()
 {
