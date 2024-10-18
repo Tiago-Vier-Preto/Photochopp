@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QImage>
+#include <QInputDialog>
 #if defined(QT_PRINTSUPPORT_LIB)
 #  include <QtPrintSupport/qtprintsupportglobal.h>
 
@@ -31,7 +32,6 @@ public:
 private slots:
     void open();
     void saveAs();
-    void print();
     void copy();
     void paste();
     void zoomIn();
@@ -46,10 +46,16 @@ private:
     void updateActions();
     bool saveFile(const QString &fileName);
     void setImage(const QImage &newImage);
+    void flipHorizontally();
+    void flipVertically();
+    void convertToGreyScale();
+    void greyScaleQuantization();
+    void resetImage();
     void scaleImage(double factor);
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
 
     QImage image;
+    QImage resultImage;
     QLabel *imageLabel;
     QLabel *resultLabel;
     QScrollArea *scrollArea;
@@ -61,8 +67,12 @@ private:
 #endif
 
     QAction *saveAsAct;
-    QAction *printAct;
     QAction *copyAct;
+    QAction *flipHorizontallyAct;
+    QAction *flipVerticallyAct;
+    QAction *convertToGreyScaleAct;
+    QAction *greyScaleQuantizationAct;
+    QAction *resetImageAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;

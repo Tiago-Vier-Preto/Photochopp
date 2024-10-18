@@ -107,6 +107,7 @@ bool ImageViewer::loadFile(const QString &fileName)
 void ImageViewer::setImage(const QImage &newImage)
 {
     image = newImage;
+    resultImage = newImage;
     if (image.colorSpace().isValid())
         image.convertToColorSpace(QColorSpace::SRgb);
 
@@ -122,15 +123,15 @@ void ImageViewer::setImage(const QImage &newImage)
 
     // Definir a imagem original e processada (por enquanto, a mesma imagem)
     imageLabel->setPixmap(QPixmap::fromImage(scaledImage));
-    resultLabel->setPixmap(QPixmap::fromImage(scaledImage)); // Pode ser diferente se processada
-
-    // Redimensionar as labels para ajustar ao tamanho das imagens
     imageLabel->adjustSize();
+
+    resultLabel->setPixmap(QPixmap::fromImage(scaledImage)); // Pode ser diferente se processada
     resultLabel->adjustSize();
+    // Redimensionar as labels para ajustar ao tamanho das imagens
 
     // Atualizar as áreas de rolagem para ajustar ao tamanho das labels
-    scrollArea->setWidgetResizable(true);
-    scrollAreaResult->setWidgetResizable(true);
+    //scrollArea->setWidgetResizable(true);
+    //scrollAreaResult->setWidgetResizable(true);
 
     // Redimensionar a janela para caber as imagens lado a lado
     QSize newWindowSize = QSize(scaledImage.width() * 2 + 150, scaledImage.height() + 150); // Largura das duas imagens + espaço extra
@@ -144,6 +145,12 @@ void ImageViewer::setImage(const QImage &newImage)
 
     // Garantir que o layout se ajuste ao novo tamanho das imagens
     centralWidget()->adjustSize();
+
+    flipHorizontallyAct->setEnabled(true);
+    flipVerticallyAct->setEnabled(true);
+    convertToGreyScaleAct->setEnabled(true);
+    greyScaleQuantizationAct->setEnabled(true);
+    resetImageAct->setEnabled(true);
     
     scaleFactor = 1.0;
 
@@ -155,7 +162,7 @@ bool ImageViewer::saveFile(const QString &fileName)
 {
     QImageWriter writer(fileName);
 
-    if (!writer.write(image)) {
+    if (!writer.write(resultImage)) {
         QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
                                  tr("Cannot write %1: %2")
                                      .arg(QDir::toNativeSeparators(fileName)), writer.errorString());
@@ -215,30 +222,10 @@ void ImageViewer::saveAs()
     while (dialog.exec() == QDialog::Accepted && !saveFile(dialog.selectedFiles().constFirst())) {}
 }
 
-void ImageViewer::print()
-{
-    Q_ASSERT(!imageLabel->pixmap(Qt::ReturnByValue).isNull());
-#if defined(QT_PRINTSUPPORT_LIB) && QT_CONFIG(printdialog)
-    //! [6] //! [7]
-    QPrintDialog dialog(&printer, this);
-
-    if (dialog.exec()) {
-        QPainter painter(&printer);
-        QPixmap pixmap = imageLabel->pixmap(Qt::ReturnByValue);
-        QRect rect = painter.viewport();
-        QSize size = pixmap.size();
-        size.scale(rect.size(), Qt::KeepAspectRatio);
-        painter.setViewport(rect.x(), rect.y(), size.width(), size.height());
-        painter.setWindow(pixmap.rect());
-        painter.drawPixmap(0, 0, pixmap);
-    }
-#endif
-}
-
 void ImageViewer::copy()
 {
 #ifndef QT_NO_CLIPBOARD
-    QGuiApplication::clipboard()->setImage(image);
+    QGuiApplication::clipboard()->setImage(resultImage);
 #endif // !QT_NO_CLIPBOARD
 }
 
@@ -325,10 +312,6 @@ void ImageViewer::createActions()
     saveAsAct = fileMenu->addAction(tr("&Save As..."), this, &ImageViewer::saveAs);
     saveAsAct->setEnabled(false);
 
-    printAct = fileMenu->addAction(tr("&Print..."), this, &ImageViewer::print);
-    printAct->setShortcut(QKeySequence::Print);
-    printAct->setEnabled(false);
-
     fileMenu->addSeparator();
 
     QAction *exitAct = fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
@@ -342,6 +325,23 @@ void ImageViewer::createActions()
 
     QAction *pasteAct = editMenu->addAction(tr("&Paste"), this, &ImageViewer::paste);
     pasteAct->setShortcut(QKeySequence::Paste);
+
+    editMenu->addSeparator();
+
+    flipHorizontallyAct = editMenu->addAction(tr("Flip &Horizontally"), this, &ImageViewer::flipHorizontally);
+    flipHorizontallyAct->setEnabled(false);
+
+    flipVerticallyAct = editMenu->addAction(tr("Flip &Vertically"), this, &ImageViewer::flipVertically);
+    flipVerticallyAct->setEnabled(false);
+
+    convertToGreyScaleAct = editMenu->addAction(tr("Convert to &Grey Scale"), this, &ImageViewer::convertToGreyScale);
+    convertToGreyScaleAct->setEnabled(false);
+
+    greyScaleQuantizationAct = editMenu->addAction(tr("Grey Scale &Quantization"), this, &ImageViewer::greyScaleQuantization);
+    greyScaleQuantizationAct->setEnabled(false);
+
+    resetImageAct = editMenu->addAction(tr("&Reset Image"), this, &ImageViewer::resetImage);
+    resetImageAct->setEnabled(false);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 
@@ -404,3 +404,106 @@ void ImageViewer::adjustScrollBar(QScrollBar *scrollBar, double factor)
     scrollBar->setValue(int(factor * scrollBar->value()
                             + ((factor - 1) * scrollBar->pageStep()/2)));
 }
+
+void ImageViewer::flipHorizontally()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    resultImage = resultImage.mirrored(true, false);
+    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+    resultLabel->adjustSize();
+
+}
+
+void ImageViewer::flipVertically()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    resultImage = resultImage.mirrored(false, true);
+    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+    resultLabel->adjustSize();
+}
+
+void ImageViewer::convertToGreyScale()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    resultImage = resultImage.convertToFormat(QImage::Format_Grayscale8);
+    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+    resultLabel->adjustSize();
+}
+
+void ImageViewer::greyScaleQuantization()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    // Solicitar o número de níveis
+    QString input = QInputDialog::getText(this, tr("Quantization"), tr("Enter the number of levels:"));
+    int n = input.toInt();
+
+    if (n <= 1) {
+        QMessageBox::warning(this, tr("Error"), tr("Number of levels must be greater than 1."));
+        return;
+    }
+
+    QImage greyImage = resultImage.convertToFormat(QImage::Format_Grayscale8);
+
+    int t1 = INT_MAX;
+    int t2 = INT_MIN;
+
+    // Encontrar o menor (t1) e maior tom (t2)
+    for (int i = 0; i < greyImage.width(); i++) {
+        for (int j = 0; j < greyImage.height(); j++) {
+            QRgb pixel = greyImage.pixel(i, j);
+            int value = qGray(pixel);
+            if (value < t1) {
+                t1 = value;
+            }
+            if (value > t2) {
+                t2 = value;
+            }
+        }
+    }
+
+    int tam_int = t2 - t1 + 1;
+
+    // Se n >= tam_int, não há necessidade de quantização
+    if (n >= tam_int) return;
+
+    // Calcular o tamanho do bin (tb)
+    float tb = (float) tam_int / n;
+
+    // Quantização da imagem
+    for (int i = 0; i < greyImage.width(); i++) {
+        for (int j = 0; j < greyImage.height(); j++) {
+            QRgb pixel = greyImage.pixel(i, j);
+            int value = qGray(pixel);
+
+            // Calcular o bin correspondente e o valor quantizado
+            int bin = (value - t1) / tb;
+            int new_value = t1 + bin * tb + tb / 2;
+
+            greyImage.setPixel(i, j, qRgb(new_value, new_value, new_value));
+        }
+    }
+
+    resultImage = greyImage;
+    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+    resultLabel->adjustSize();
+}
+
+void ImageViewer::resetImage()
+{
+    resultImage = image;
+    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+    resultLabel->adjustSize();
+}
+
