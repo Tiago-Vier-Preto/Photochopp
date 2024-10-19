@@ -397,30 +397,8 @@ void ImageViewer::adjustScrollBar(QScrollBar *scrollBar, double factor)
                             + ((factor - 1) * scrollBar->pageStep()/2)));
 }
 
-void ImageViewer::flipHorizontally()
+void ImageViewer::scale()
 {
-    if (resultImage.isNull()) {
-        return;
-    }
-
-    resultImage = resultImage.mirrored(true, false);
-    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
-    resultLabel->adjustSize();
-
-}
-
-void ImageViewer::flipVertically()
-{
-    if (resultImage.isNull()) {
-        return;
-    }
-
-    QImage tempImage = resultImage.copy();
-
-    for (int i = 0; i < resultImage.height(); ++i) {
-        memcpy(resultImage.scanLine(i), tempImage.scanLine(resultImage.height() - 1 - i), resultImage.bytesPerLine());
-    }
-
     const QSize maxSize = QSize(800, 720);
     const QSize imageSize = resultImage.size();
 
@@ -433,15 +411,55 @@ void ImageViewer::flipVertically()
     resultLabel->adjustSize();
 }
 
+void ImageViewer::flipHorizontally()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    QImage tempImage = resultImage.copy();
+    int width = resultImage.width();
+    int height = resultImage.height();
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            resultImage.setPixelColor(i,j,tempImage.pixelColor(width - i - 1, j));
+        }
+    }
+    scale();
+
+}
+
+void ImageViewer::flipVertically()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    QImage tempImage = resultImage.copy();
+    int height = resultImage.height();
+    for (int i = 0; i < height; ++i) {
+        memcpy(resultImage.scanLine(i), tempImage.scanLine(height - 1 - i), resultImage.bytesPerLine());
+    }
+    scale();
+}
+
 void ImageViewer::convertToGreyScale()
 {
     if (resultImage.isNull()) {
         return;
     }
 
-    resultImage = resultImage.convertToFormat(QImage::Format_Grayscale8);
-    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
-    resultLabel->adjustSize();
+    for (int i = 0; i < resultImage.width(); ++i)
+    {
+        for (int j = 0; j < resultImage.height(); ++j)
+        {
+            QColor pixelColor = resultImage.pixelColor(i,j);
+            double L = 0.299*pixelColor.red() + 0.587*pixelColor.green() + 0.114*pixelColor.blue();
+            QColor grey(L,L,L);
+            resultImage.setPixelColor(i,j,grey);
+        }
+    }
+    scale();
 }
 
 void ImageViewer::greyScaleQuantization()
@@ -454,20 +472,20 @@ void ImageViewer::greyScaleQuantization()
     QString input = QInputDialog::getText(this, tr("Quantization"), tr("Enter the number of levels:"));
     int n = input.toInt();
 
-    if (n <= 1) {
-        QMessageBox::warning(this, tr("Error"), tr("Number of levels must be greater than 1."));
+    if (n <= 0) {
+        QMessageBox::warning(this, tr("Error"), tr("Number of levels must be greater than 0."));
         return;
     }
 
-    QImage greyImage = resultImage.convertToFormat(QImage::Format_Grayscale8);
+    convertToGreyScale();
 
     int t1 = INT_MAX;
     int t2 = INT_MIN;
 
     // Finds the minimum and maximum shades of grey in the image
-    for (int i = 0; i < greyImage.width(); i++) {
-        for (int j = 0; j < greyImage.height(); j++) {
-            QRgb pixel = greyImage.pixel(i, j);
+    for (int i = 0; i < resultImage.width(); i++) {
+        for (int j = 0; j < resultImage.height(); j++) {
+            QRgb pixel = resultImage.pixel(i, j);
             int value = qGray(pixel);
             if (value < t1) {
                 t1 = value;
@@ -486,29 +504,25 @@ void ImageViewer::greyScaleQuantization()
     // Calculates the size of each bin
     float tb = (float) tam_int / n;
 
-    for (int i = 0; i < greyImage.width(); i++) {
-        for (int j = 0; j < greyImage.height(); j++) {
-            QRgb pixel = greyImage.pixel(i, j);
+    for (int i = 0; i < resultImage.width(); i++) {
+        for (int j = 0; j < resultImage.height(); j++) {
+            QRgb pixel = resultImage.pixel(i, j);
             int value = qGray(pixel);
 
             int bin = (value - t1 + 0.5) / tb;
 
             int new_value = t1 - 0.5 + (bin + 0.5) * tb;
 
-            greyImage.setPixel(i, j, qRgb(new_value, new_value, new_value));
+            resultImage.setPixel(i, j, qRgb(new_value, new_value, new_value));
         }
     }
-
-    resultImage = greyImage;
-    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
-    resultLabel->adjustSize();
+    scale();
 }
 
 
 void ImageViewer::resetImage()
 {
     resultImage = image;
-    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
-    resultLabel->adjustSize();
+    scale();
 }
 

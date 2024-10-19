@@ -46,6 +46,7 @@ private:
     void updateActions();
     bool saveFile(const QString &fileName);
     void setImage(const QImage &newImage);
+    void scale();
     void flipHorizontally();
     void flipVertically();
     void convertToGreyScale();
