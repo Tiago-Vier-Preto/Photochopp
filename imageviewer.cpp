@@ -19,6 +19,7 @@
 #include <QStatusBar>
 #include <QHBoxLayout>
 #include <QGroupBox>
+#include <cstring>
 
 #if defined(QT_PRINTSUPPORT_LIB)
 #  include <QtPrintSupport/qtprintsupportglobal.h>
@@ -414,8 +415,21 @@ void ImageViewer::flipVertically()
         return;
     }
 
-    resultImage = resultImage.mirrored(false, true);
-    resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+    QImage tempImage = resultImage.copy();
+
+    for (int i = 0; i < resultImage.height(); ++i) {
+        memcpy(resultImage.scanLine(i), tempImage.scanLine(resultImage.height() - 1 - i), resultImage.bytesPerLine());
+    }
+
+    const QSize maxSize = QSize(800, 720);
+    const QSize imageSize = resultImage.size();
+
+    QImage scaledImage = resultImage;
+    if (imageSize.width() > maxSize.width() || imageSize.height() > maxSize.height()) {
+        scaledImage = resultImage.scaled(maxSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+
+    resultLabel->setPixmap(QPixmap::fromImage(scaledImage));
     resultLabel->adjustSize();
 }
 
