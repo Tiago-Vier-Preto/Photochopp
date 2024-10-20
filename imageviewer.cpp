@@ -277,19 +277,11 @@ void ImageViewer::fitToWindow()
 
 void ImageViewer::about()
 {
-    QMessageBox::about(this, tr("About Image Viewer"),
-                       tr("<p>The <b>Image Viewer</b> example shows how to combine QLabel "
-                          "and QScrollArea to display an image. QLabel is typically used "
-                          "for displaying a text, but it can also display an image. "
-                          "QScrollArea provides a scrolling view around another widget. "
-                          "If the child widget exceeds the size of the frame, QScrollArea "
-                          "automatically provides scroll bars. </p><p>The example "
-                          "demonstrates how QLabel's ability to scale its contents "
-                          "(QLabel::scaledContents), and QScrollArea's ability to "
-                          "automatically resize its contents "
-                          "(QScrollArea::widgetResizable), can be used to implement "
-                          "zooming and scaling features. </p><p>In addition the example "
-                          "shows how to use QPainter to print an image.</p>"));
+    QMessageBox::about(this, tr("About Photochopp"),
+                       tr("<p> The <b>Photochopp Editor</b> is a simple image editor that allows you to perform basic image processing operations.</p>"
+                       "<p>Load an image by clicking on the 'File' menu and selecting 'Open'.</p>"
+                       "<p>The editor allows you to flip the image horizontally or vertically, convert it to grayscale, quantize the grayscale, and reset the image to its original state.</p>"
+                       "<p>Developed by: <b>Augusto Mattei Grohmann</b> and <b>Tiago Vier Preto<b> </p>"));
 }
 
 void ImageViewer::createActions()
@@ -357,7 +349,6 @@ void ImageViewer::createActions()
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
 
     helpMenu->addAction(tr("&About"), this, &ImageViewer::about);
-    helpMenu->addAction(tr("About &Qt"), this, &QApplication::aboutQt);
 }
 
 void ImageViewer::updateActions()
