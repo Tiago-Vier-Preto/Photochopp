@@ -110,7 +110,7 @@ void ImageViewer::setImage(const QImage &newImage)
         image.convertToColorSpace(QColorSpace::SRgb);
 
     // Defines the maximum size for the images
-    const QSize maxSize = QSize(800, 720);
+    const QSize maxSize = QGuiApplication::primaryScreen()->availableSize() * 3 / 7 + QSize(40, 40);
     const QSize imageSize = image.size();
 
     QImage scaledImage = image;
@@ -135,8 +135,6 @@ void ImageViewer::setImage(const QImage &newImage)
     int x = (screenGeometry.width() - this->width()) / 2;
     int y = (screenGeometry.height() - this->height()) / 2;
     this->move(x, y); 
-
-    centralWidget()->adjustSize();
 
     flipHorizontallyAct->setEnabled(true);
     flipVerticallyAct->setEnabled(true);
@@ -399,7 +397,7 @@ void ImageViewer::adjustScrollBar(QScrollBar *scrollBar, double factor)
 
 void ImageViewer::scale()
 {
-    const QSize maxSize = QSize(800, 720);
+    const QSize maxSize = QGuiApplication::primaryScreen()->availableSize() * 3 / 7 + QSize(40, 40);
     const QSize imageSize = resultImage.size();
 
     QImage scaledImage = resultImage;
