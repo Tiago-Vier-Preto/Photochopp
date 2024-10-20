@@ -40,5 +40,5 @@ Photochopp is a simple image editing application built using C++ and the Qt fram
 
 ## About
 
-Photochopp was developed by [Augusto Mattei Grohmann](https://github.com/augustomattei) and [Tiago Vier Preto](https://github.com/tiagovpreto).
+Photochopp was developed by [Augusto Mattei Grohmann](https://github.com/Goldenkiuren) and [Tiago Vier Preto](https://github.com/Tiago-Vier-Preto).
 
