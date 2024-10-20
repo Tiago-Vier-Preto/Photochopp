@@ -266,15 +266,6 @@ void ImageViewer::normalSize()
     scaleFactor = 1.0;
 }
 
-void ImageViewer::fitToWindow()
-{
-    bool fitToWindow = fitToWindowAct->isChecked();
-    scrollArea->setWidgetResizable(fitToWindow);
-    if (!fitToWindow)
-        normalSize();
-    updateActions();
-}
-
 void ImageViewer::about()
 {
     QMessageBox::about(this, tr("About Photochopp"),
@@ -339,13 +330,6 @@ void ImageViewer::createActions()
     normalSizeAct->setShortcut(tr("Ctrl+S"));
     normalSizeAct->setEnabled(false);
 
-    viewMenu->addSeparator();
-
-    fitToWindowAct = viewMenu->addAction(tr("&Fit to Window"), this, &ImageViewer::fitToWindow);
-    fitToWindowAct->setEnabled(false);
-    fitToWindowAct->setCheckable(true);
-    fitToWindowAct->setShortcut(tr("Ctrl+F"));
-
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
 
     helpMenu->addAction(tr("&About"), this, &ImageViewer::about);
@@ -355,9 +339,9 @@ void ImageViewer::updateActions()
 {
     saveAsAct->setEnabled(!image.isNull());
     copyAct->setEnabled(!image.isNull());
-    zoomInAct->setEnabled(!fitToWindowAct->isChecked());
-    zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
-    normalSizeAct->setEnabled(!fitToWindowAct->isChecked());
+    zoomInAct->setEnabled(!image.isNull());
+    zoomOutAct->setEnabled(!image.isNull());
+    normalSizeAct->setEnabled(!image.isNull());
 }
 
 void ImageViewer::scaleImage(double factor)

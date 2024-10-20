@@ -37,7 +37,6 @@ private slots:
     void zoomIn();
     void zoomOut();
     void normalSize();
-    void fitToWindow();
     void about();
 
 private:
@@ -77,7 +76,6 @@ private:
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;
-    QAction *fitToWindowAct;
 };
 
 #endif

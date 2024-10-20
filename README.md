@@ -9,7 +9,6 @@ Photochopp is a simple image editing application built using C++ and the Qt fram
 - Convert images to grayscale
 - Grayscale quantization (reduce number of shades of gray)
 - Zoom in and out on images
-- Fit image to window
 - Reset the image to its original state
 - Save the processed image in various formats
 - Copy and paste images from the clipboard
@@ -37,7 +36,7 @@ Photochopp is a simple image editing application built using C++ and the Qt fram
 - **Flip Image**: Use the `Edit` menu to flip the image horizontally or vertically.
 - **Convert to Grayscale**: Click `Edit` > `Convert to Grayscale`.
 - **Quantize Grayscale**: Reduce the number of shades of gray in the image by clicking `Edit` > `Grayscale Quantization` and entering the desired number of levels.
-- **Zoom**: Use the `View` menu to zoom in, zoom out, or fit the image to the window.
+- **Zoom**: Use the `View` menu to zoom in, zoom out.
 
 ## About
 
