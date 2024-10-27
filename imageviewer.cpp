@@ -1,5 +1,5 @@
 #include "imageviewer.h"
-
+#include "convolutionwindow.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QColorSpace>
@@ -139,8 +139,8 @@ void ImageViewer::setImage(const QImage &newImage)
 
     flipHorizontallyAct->setEnabled(true);
     flipVerticallyAct->setEnabled(true);
-    convertToGreyScaleAct->setEnabled(true);
-    greyScaleQuantizationAct->setEnabled(true);
+    convertToGrayScaleAct->setEnabled(true);
+    grayScaleQuantizationAct->setEnabled(true);
     resetImageAct->setEnabled(true);
     histogramAct->setEnabled(true);
     brightnessAct->setEnabled(true);
@@ -148,6 +148,9 @@ void ImageViewer::setImage(const QImage &newImage)
     negativeAct->setEnabled(true);
     rotateLeftAct->setEnabled(true);
     rotateRightAct->setEnabled(true);
+    histogramEqualizationAct->setEnabled(true);
+    grayScaleHistogramMatchingAct->setEnabled(true);
+    conv2dAct->setEnabled(true);
     
     scaleFactor = 1.0;
 
@@ -314,11 +317,11 @@ void ImageViewer::createActions()
     flipVerticallyAct = editMenu->addAction(tr("Flip &Vertically"), this, &ImageViewer::flipVertically);
     flipVerticallyAct->setEnabled(false);
 
-    convertToGreyScaleAct = editMenu->addAction(tr("Convert to &Grey Scale"), this, &ImageViewer::convertToGreyScale);
-    convertToGreyScaleAct->setEnabled(false);
+    convertToGrayScaleAct = editMenu->addAction(tr("Convert to &Gray Scale"), this, &ImageViewer::convertToGrayScale);
+    convertToGrayScaleAct->setEnabled(false);
 
-    greyScaleQuantizationAct = editMenu->addAction(tr("Grey Scale &Quantization"), this, &ImageViewer::greyScaleQuantization);
-    greyScaleQuantizationAct->setEnabled(false);
+    grayScaleQuantizationAct = editMenu->addAction(tr("Gray Scale &Quantization"), this, &ImageViewer::grayScaleQuantization);
+    grayScaleQuantizationAct->setEnabled(false);
 
     brightnessAct = editMenu->addAction(tr("&Brightness"), this, &ImageViewer::brightness);
     brightnessAct->setEnabled(false);
@@ -328,6 +331,15 @@ void ImageViewer::createActions()
 
     negativeAct = editMenu->addAction(tr("&Negative"), this, &ImageViewer::negative);
     negativeAct->setEnabled(false);
+
+    histogramEqualizationAct = editMenu->addAction(tr("&Histogram Equalization"), this, &ImageViewer::histogramEqualization);
+    histogramEqualizationAct->setEnabled(false);
+
+    grayScaleHistogramMatchingAct = editMenu->addAction(tr("&Grayscale Histogram Matching"), this, &ImageViewer::grayScaleHistogramMatching);
+    grayScaleHistogramMatchingAct->setEnabled(false);
+
+    conv2dAct = editMenu->addAction(tr("2D &Convolution"), this, &ImageViewer::conv2d);
+    conv2dAct->setEnabled(false);
 
     resetImageAct = editMenu->addAction(tr("&Reset Image"), this, &ImageViewer::resetImage);
     resetImageAct->setEnabled(false);
@@ -371,8 +383,8 @@ void ImageViewer::updateActions()
     normalSizeAct->setEnabled(!image.isNull());
     flipHorizontallyAct->setEnabled(!image.isNull());
     flipVerticallyAct->setEnabled(!image.isNull());
-    convertToGreyScaleAct->setEnabled(!image.isNull());
-    greyScaleQuantizationAct->setEnabled(!image.isNull());
+    convertToGrayScaleAct->setEnabled(!image.isNull());
+    grayScaleQuantizationAct->setEnabled(!image.isNull());
     resetImageAct->setEnabled(!image.isNull());
     histogramAct->setEnabled(!image.isNull());
     brightnessAct->setEnabled(!image.isNull());
@@ -380,6 +392,9 @@ void ImageViewer::updateActions()
     negativeAct->setEnabled(!image.isNull());
     rotateLeftAct->setEnabled(!image.isNull());
     rotateRightAct->setEnabled(!image.isNull());
+    histogramEqualizationAct->setEnabled(!image.isNull());
+    grayScaleHistogramMatchingAct->setEnabled(!image.isNull());
+    conv2dAct->setEnabled(!image.isNull());
 }
 
 void ImageViewer::scaleImage(double factor)
@@ -454,8 +469,9 @@ void ImageViewer::flipVertically()
     scale();
 }
 
-void ImageViewer::convertToGreyScale()
+void ImageViewer::convertToGrayScale()
 {
+    resultImage = resultImage.convertToFormat(QImage::Format_Grayscale8);
     if (resultImage.isNull()) {
         return;
     }
@@ -466,14 +482,14 @@ void ImageViewer::convertToGreyScale()
         {
             QColor pixelColor = resultImage.pixelColor(i,j);
             double L = 0.299*pixelColor.red() + 0.587*pixelColor.green() + 0.114*pixelColor.blue();
-            QColor grey(L,L,L);
-            resultImage.setPixelColor(i,j,grey);
+            QColor gray(L,L,L);
+            resultImage.setPixelColor(i,j,gray);
         }
-    }
+    } 
     scale();
 }
 
-void ImageViewer::greyScaleQuantization()
+void ImageViewer::grayScaleQuantization()
 {
     if (resultImage.isNull()) {
         return;
@@ -488,12 +504,12 @@ void ImageViewer::greyScaleQuantization()
         return;
     }
 
-    convertToGreyScale();
+    convertToGrayScale();
 
     int t1 = INT_MAX;
     int t2 = INT_MIN;
 
-    // Finds the minimum and maximum shades of grey in the image
+    // Finds the minimum and maximum shades of gray in the image
     for (int i = 0; i < resultImage.width(); i++) {
         for (int j = 0; j < resultImage.height(); j++) {
             QRgb pixel = resultImage.pixel(i, j);
@@ -509,7 +525,7 @@ void ImageViewer::greyScaleQuantization()
 
     int tam_int = t2 - t1 + 1;
 
-    // if the number of levels is greater than the number of shades of grey, return
+    // if the number of levels is greater than the number of shades of gray, return
     if (n >= tam_int) return;
 
     // Calculates the size of each bin
@@ -545,7 +561,7 @@ void ImageViewer::grayScaleHistogram()
 
     int histogram[256] = {0};
 
-    QImage resultImageGray = resultImage.convertToFormat(QImage::Format_Grayscale8);
+    QImage resultImageGray = (resultImage.format() == QImage::Format_Grayscale8) ? resultImage : resultImage.convertToFormat(QImage::Format_Grayscale8);
 
     for (int i = 0; i < resultImageGray.width(); i++) {
         for (int j = 0; j < resultImageGray.height(); j++) {
@@ -603,7 +619,7 @@ void ImageViewer::grayScaleHistogram()
 
     QWidget *histogramWindow = new QWidget;
     histogramWindow->setLayout(histogramLayout);
-    histogramWindow->setWindowTitle(tr("Grayscale Histogram"));
+    histogramWindow->setWindowTitle(tr("Result Image Grayscale Histogram"));
     histogramWindow->resize(histWidth + 50, histHeight + 50);  // Increase height to accommodate labels
     histogramWindow->show();
 }
@@ -745,4 +761,226 @@ void ImageViewer::rotateRight()
 
     resultImage = resultImage.transformed(transform);
     scale();
+}
+
+void ImageViewer::histogramEqualization() {
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    int width = resultImage.width();
+    int height = resultImage.height();
+    int numPixels = width * height;
+
+    if (resultImage.format() == QImage::Format_Grayscale8) {
+        int histogram[256] = {0};
+        int cdf[256] = {0};
+        float alpha = 255.0f / numPixels;
+
+        // Cálculo do histograma
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                int value = qGray(resultImage.pixel(i, j));
+                histogram[value]++;
+            }
+        }
+
+        // Cálculo do histograma cumulativo (CDF)
+        cdf[0] = static_cast<int>(std::round(alpha * histogram[0]));
+        for (int i = 1; i < 256; i++) {
+            cdf[i] = cdf[i - 1] + static_cast<int>(std::round(alpha * histogram[i]));
+            cdf[i] = std::min(255, cdf[i]); // Limitando o valor entre 0 e 255
+        }
+
+        // Aplicação do histograma cumulativo na imagem
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                int value = qGray(resultImage.pixel(i, j));
+                int equalizedGray = cdf[value];
+                resultImage.setPixel(i, j, qRgb(equalizedGray, equalizedGray, equalizedGray));
+            }
+        }
+
+        int histogramOriginal[256] = {0};
+
+        QImage resultImageGray = image.convertToFormat(QImage::Format_Grayscale8);
+
+        for (int i = 0; i < resultImageGray.width(); i++) {
+            for (int j = 0; j < resultImageGray.height(); j++) {
+                QRgb pixel = resultImageGray.pixel(i, j);
+                int value = qGray(pixel);
+                histogramOriginal[value]++;
+            }
+        }
+
+        int max = *std::max_element(histogramOriginal, histogramOriginal + 256);
+
+        int histWidth = 512;
+        int histHeight = 400;
+        QImage histogramImage(histWidth, histHeight, QImage::Format_RGB32);
+        histogramImage.fill(QColor(230, 230, 230));  // Light gray background
+
+        QPainter painter(&histogramImage);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        // Set pen and brush for histogram bars
+        QPen pen(Qt::blue);  
+        painter.setPen(pen);
+        painter.setBrush(QColor(0, 120, 215)); 
+
+        // Draw the histogram bars
+        for (int i = 0; i < 256; i++) {
+            int binWidth = histWidth / 256;
+            int binHeight = (histogramOriginal[i] * histHeight) / max;
+            painter.drawRect(i * binWidth, histHeight - binHeight, binWidth - 1, binHeight);
+        }
+
+        // Add x and y axis labels
+        QFont font = painter.font();
+        font.setPointSize(10);
+        painter.setFont(font);
+
+        painter.setPen(Qt::black);
+        painter.drawText(histWidth / 2 - 20, histHeight - 10, "Pixel Value");  // X-axis label
+        painter.rotate(-90);
+        painter.drawText(-histHeight / 2 - 40, 20, "Frequency");  // Y-axis label
+        painter.resetTransform();
+
+        // Create a new window to display the histogram
+        QLabel *histogramLabel = new QLabel;
+        histogramLabel->setPixmap(QPixmap::fromImage(histogramImage));
+        histogramLabel->setAlignment(Qt::AlignCenter);
+
+        QScrollArea *scrollAreaHistogram = new QScrollArea;
+        scrollAreaHistogram->setWidget(histogramLabel);
+        scrollAreaHistogram->setAlignment(Qt::AlignCenter);
+        scrollAreaHistogram->setWidgetResizable(true);
+
+        QVBoxLayout *histogramLayout = new QVBoxLayout;
+        histogramLayout->addWidget(scrollAreaHistogram);
+
+        QWidget *histogramWindow = new QWidget;
+        histogramWindow->setLayout(histogramLayout);
+        histogramWindow->setWindowTitle(tr("Original Image Grayscale Histogram"));
+        histogramWindow->resize(histWidth + 50, histHeight + 50);  // Increase height to accommodate labels
+        histogramWindow->show();
+
+        grayScaleHistogram();
+
+    } else { // Para imagens coloridas
+        int histogramR[256] = {0};
+        int histogramG[256] = {0};
+        int histogramB[256] = {0};
+        int cdfR[256] = {0};
+        int cdfG[256] = {0};
+        int cdfB[256] = {0};
+        float alpha = 255.0f / numPixels;
+
+        // Cálculo dos histogramas
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                histogramR[qRed(pixel)]++;
+                histogramG[qGreen(pixel)]++;
+                histogramB[qBlue(pixel)]++;
+            }
+        }
+
+        // Cálculo dos histogramas cumulativos (CDF)
+        cdfR[0] = static_cast<int>(std::round(alpha * histogramR[0]));
+        cdfG[0] = static_cast<int>(std::round(alpha * histogramG[0]));
+        cdfB[0] = static_cast<int>(std::round(alpha * histogramB[0]));
+        for (int i = 1; i < 256; i++) {
+            cdfR[i] = std::min(255, cdfR[i - 1] + static_cast<int>(std::round(alpha * histogramR[i])));
+            cdfG[i] = std::min(255, cdfG[i - 1] + static_cast<int>(std::round(alpha * histogramG[i])));
+            cdfB[i] = std::min(255, cdfB[i - 1] + static_cast<int>(std::round(alpha * histogramB[i])));
+        }
+
+        // Aplicação do histograma cumulativo na imagem
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int r = cdfR[qRed(pixel)];
+                int g = cdfG[qGreen(pixel)];
+                int b = cdfB[qBlue(pixel)];
+                resultImage.setPixel(i, j, qRgb(r, g, b));
+            }
+        }
+    }
+    scale(); 
+}
+
+void ImageViewer::grayScaleHistogramMatching()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    // Ask the user for the image to be used as reference
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Image"), QDir::homePath(), tr("Images (*.png *.jpg *.bmp)"));
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QImage referenceImage;
+    if (!referenceImage.load(fileName)) {
+        QMessageBox::warning(this, tr("Error"), tr("Failed to load reference image."));
+        return;
+    }
+
+    if (referenceImage.format() != QImage::Format_Grayscale8) {
+        referenceImage = referenceImage.convertToFormat(QImage::Format_Grayscale8);
+    }
+
+    int hist_src[256] = {0}, hist_target[256] = {0}, hist_src_cum[256] = {0}, hist_target_cum[256] = {0};
+    int HM[256] = {0};
+
+    float alpha_target = 255.0f / (referenceImage.width() * referenceImage.height());
+    float alpha_src = 255.0f / (resultImage.width() * resultImage.height());
+
+    // histogram calculation 
+    for (int i = 0; i < referenceImage.width(); i++) {
+        for (int j = 0; j < referenceImage.height(); j++) {
+            int value = qGray(referenceImage.pixel(i, j));
+            hist_target[value]++;
+        }
+    }
+
+    for (int i = 0; i < resultImage.width(); i++) {
+        for (int j = 0; j < resultImage.height(); j++) {
+            int value = qGray(resultImage.pixel(i, j));
+            hist_src[value]++;
+        }
+    }
+
+    // Cumulative histogram calculation
+    hist_src_cum[0] = static_cast<int>(std::round(alpha_src * hist_src[0]));
+    hist_target_cum[0] = static_cast<int>(std::round(alpha_target * hist_target[0]));
+
+    for (int i = 1; i < 256; i++) {
+        hist_src_cum[i] = hist_src_cum[i - 1] + static_cast<int>(std::round(alpha_src * hist_src[i]));
+        hist_target_cum[i] = hist_target_cum[i - 1] + static_cast<int>(std::round(alpha_target * hist_target[i]));
+    }
+
+    for (int i = 0; i < 256; i++) {
+        int j = 0;
+        do {
+            HM[i] = j;
+            j++;
+        } while (hist_src_cum[i] > hist_target_cum[j]);
+    }
+
+    for (int i = 0; i < resultImage.width(); i++) {
+        for (int j = 0; j < resultImage.height(); j++) {
+            int value = qGray(resultImage.pixel(i, j));
+            resultImage.setPixel(i, j, qRgb(HM[value], HM[value], HM[value]));
+        }
+    }
+    scale();
+}
+
+void ImageViewer::conv2d() 
+{
+    convolutionwindow *convWindow = new convolutionwindow(this); 
+    convWindow->show();
 }

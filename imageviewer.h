@@ -48,8 +48,8 @@ private:
     void scale();
     void flipHorizontally();
     void flipVertically();
-    void convertToGreyScale();
-    void greyScaleQuantization();
+    void convertToGrayScale();
+    void grayScaleQuantization();
     void grayScaleHistogram();
     void resetImage();
     void scaleImage(double factor);
@@ -59,6 +59,9 @@ private:
     void negative();
     void rotateLeft();
     void rotateRight();
+    void histogramEqualization();
+    void grayScaleHistogramMatching();
+    void conv2d();
 
     QImage image;
     QImage resultImage;
@@ -76,8 +79,8 @@ private:
     QAction *copyAct;
     QAction *flipHorizontallyAct;
     QAction *flipVerticallyAct;
-    QAction *convertToGreyScaleAct;
-    QAction *greyScaleQuantizationAct;
+    QAction *convertToGrayScaleAct;
+    QAction *grayScaleQuantizationAct;
     QAction *resetImageAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;
@@ -88,6 +91,9 @@ private:
     QAction *negativeAct;
     QAction *rotateLeftAct;
     QAction *rotateRightAct;
+    QAction *histogramEqualizationAct;
+    QAction *grayScaleHistogramMatchingAct;
+    QAction *conv2dAct;
 };
 
 #endif
