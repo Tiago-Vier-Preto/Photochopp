@@ -998,6 +998,18 @@ void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
 
     QImage tempImage = resultImage.copy();
 
+    std::vector<std::vector<float>> gaussianFilter = {
+        {0.0625, 0.125, 0.0625},
+        {0.125, 0.25, 0.125},
+        {0.0625, 0.125, 0.0625}
+    };
+
+    std::vector<std::vector<float>> highPassFilter = {
+        {-1, -1, -1},
+        {-1, 8, -1},
+        {-1, -1, -1}
+    };
+
     int kernelSize = kernel.size();
     int kernelRadius = kernelSize / 2;
 
@@ -1010,6 +1022,9 @@ void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
                         QRgb pixel = tempImage.pixel(i + k, j + l);
                         sum += qGray(pixel) * kernel[k + kernelRadius][l + kernelRadius];
                     }
+                }
+                if (kernel != highPassFilter || kernel != gaussianFilter) {
+                    sum += 127;
                 }
                 sum = std::max(0.0f, std::min(sum, 255.0f));
                 resultImage.setPixel(i, j, qRgb(sum, sum, sum));
@@ -1026,6 +1041,11 @@ void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
                         sumG += qGreen(pixel) * kernel[k + kernelRadius][l + kernelRadius];
                         sumB += qBlue(pixel) * kernel[k + kernelRadius][l + kernelRadius];
                     }
+                }
+                if (kernel != highPassFilter || kernel != gaussianFilter) {
+                    sumR += 127;
+                    sumG += 127;
+                    sumB += 127;
                 }
                 sumR = std::max(0.0f, std::min(sumR, 255.0f));
                 sumG = std::max(0.0f, std::min(sumG, 255.0f));
