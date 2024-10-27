@@ -266,7 +266,68 @@ void ImageViewer::zoomIn()
 
 void ImageViewer::zoomOut()
 {
-    scaleImage(0.8);
+    int sx = 2;
+    int sy = 2;
+
+    int originalWidth = resultImage.width();
+    int originalHeight = resultImage.height();
+
+    int newWidth = static_cast<int>(originalWidth / sx);
+    int newHeight = static_cast<int>(originalHeight / sy);
+
+    const QSize maxSize = QGuiApplication::primaryScreen()->availableSize() * 3 / 7 + QSize(40, 40);
+
+    if (newWidth > maxSize.width() || newHeight > maxSize.height()) {
+        resultImage = resultImage.scaled(maxSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        originalWidth = resultImage.width();
+        originalHeight = resultImage.height();
+        newWidth = static_cast<int>(originalWidth / sx);
+        newHeight = static_cast<int>(originalHeight / sy);
+    }
+
+    QImage reducedImage(newWidth, newHeight, QImage::Format_RGB32);
+    
+
+    for (int newY = 0; newY < newHeight; ++newY) {
+        for (int newX = 0; newX < newWidth; ++newX) {
+
+            int startX = static_cast<int>(newX * sx);
+            int startY = static_cast<int>(newY * sy);
+
+            int sumR = 0, sumG = 0, sumB = 0;
+            int count = 0;
+
+            for (int y = 0; y < sy; ++y) {
+                for (int x = 0; x < sx; ++x) {
+                    int originalX = startX + x;
+                    int originalY = startY + y;
+
+                    if (originalX < originalWidth && originalY < originalHeight) {
+                        QColor pixelColor(resultImage.pixel(originalX, originalY));
+                        sumR += pixelColor.red();
+                        sumG += pixelColor.green();
+                        sumB += pixelColor.blue();
+                        ++count; // Count the number of valid pixels
+                    }
+                }
+            }
+
+            // Calculate the average color in the corresponding pixel of the new image
+            if (count > 0) {
+                int avgR = sumR / count;
+                int avgG = sumG / count;
+                int avgB = sumB / count;
+                
+                // Set the pixel color in the new image
+                reducedImage.setPixel(newX, newY, qRgb(avgR, avgG, avgB));
+            } else {
+                // If there are no valid pixels, set the pixel color to black
+                reducedImage.setPixel(newX, newY, qRgb(0, 0, 0));
+            }
+        }
+    }
+    resultImage = reducedImage;
+    scale();
 }
 
 void ImageViewer::normalSize()
