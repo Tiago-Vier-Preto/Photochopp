@@ -150,7 +150,7 @@ void ImageViewer::setImage(const QImage &newImage)
     rotateRightAct->setEnabled(true);
     histogramEqualizationAct->setEnabled(true);
     grayScaleHistogramMatchingAct->setEnabled(true);
-    conv2dAct->setEnabled(true);
+    showConvWindowAct->setEnabled(true);
     
     scaleFactor = 1.0;
 
@@ -338,8 +338,8 @@ void ImageViewer::createActions()
     grayScaleHistogramMatchingAct = editMenu->addAction(tr("&Grayscale Histogram Matching"), this, &ImageViewer::grayScaleHistogramMatching);
     grayScaleHistogramMatchingAct->setEnabled(false);
 
-    conv2dAct = editMenu->addAction(tr("2D &Convolution"), this, &ImageViewer::conv2d);
-    conv2dAct->setEnabled(false);
+    showConvWindowAct = editMenu->addAction(tr("2D &Convolution"), this, &ImageViewer::showConvWindow);
+    showConvWindowAct->setEnabled(false);
 
     resetImageAct = editMenu->addAction(tr("&Reset Image"), this, &ImageViewer::resetImage);
     resetImageAct->setEnabled(false);
@@ -394,7 +394,7 @@ void ImageViewer::updateActions()
     rotateRightAct->setEnabled(!image.isNull());
     histogramEqualizationAct->setEnabled(!image.isNull());
     grayScaleHistogramMatchingAct->setEnabled(!image.isNull());
-    conv2dAct->setEnabled(!image.isNull());
+    showConvWindowAct->setEnabled(!image.isNull());
 }
 
 void ImageViewer::scaleImage(double factor)
@@ -979,8 +979,61 @@ void ImageViewer::grayScaleHistogramMatching()
     scale();
 }
 
-void ImageViewer::conv2d() 
+void ImageViewer::showConvWindow() 
 {
     convolutionwindow *convWindow = new convolutionwindow(this); 
     convWindow->show();
+
+    connect(convWindow, &convolutionwindow::convolution, this, &ImageViewer::convolution);
 }
+
+void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    int width = resultImage.width();
+    int height = resultImage.height();
+
+    QImage tempImage = resultImage.copy();
+
+    int kernelSize = kernel.size();
+    int kernelRadius = kernelSize / 2;
+
+    if (resultImage.format() == QImage::Format_Grayscale8) {
+        for (int i = kernelRadius; i < width - kernelRadius; i++) {
+            for (int j = kernelRadius; j < height - kernelRadius; j++) {
+                float sum = 0.0f;
+                for (int k = -kernelRadius; k <= kernelRadius; k++) {
+                    for (int l = -kernelRadius; l <= kernelRadius; l++) {
+                        QRgb pixel = tempImage.pixel(i + k, j + l);
+                        sum += qGray(pixel) * kernel[k + kernelRadius][l + kernelRadius];
+                    }
+                }
+                sum = std::max(0.0f, std::min(sum, 255.0f));
+                resultImage.setPixel(i, j, qRgb(sum, sum, sum));
+            }
+        }
+    } else {
+        for (int i = kernelRadius; i < width - kernelRadius; i++) {
+            for (int j = kernelRadius; j < height - kernelRadius; j++) {
+                float sumR = 0.0f, sumG = 0.0f, sumB = 0.0f;
+                for (int k = -kernelRadius; k <= kernelRadius; k++) {
+                    for (int l = -kernelRadius; l <= kernelRadius; l++) {
+                        QRgb pixel = tempImage.pixel(i + k, j + l);
+                        sumR += qRed(pixel) * kernel[k + kernelRadius][l + kernelRadius];
+                        sumG += qGreen(pixel) * kernel[k + kernelRadius][l + kernelRadius];
+                        sumB += qBlue(pixel) * kernel[k + kernelRadius][l + kernelRadius];
+                    }
+                }
+                sumR = std::max(0.0f, std::min(sumR, 255.0f));
+                sumG = std::max(0.0f, std::min(sumG, 255.0f));
+                sumB = std::max(0.0f, std::min(sumB, 255.0f));
+                resultImage.setPixel(i, j, qRgb(sumR, sumG, sumB));
+            }
+        }
+    }
+    scale();
+}
+    

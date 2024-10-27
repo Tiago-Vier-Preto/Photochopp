@@ -13,10 +13,10 @@ public:
     explicit convolutionwindow(QWidget *parent = nullptr);
 
 private slots:
-    void saveKernelValues(); // Slot para salvar os valores do kernel
+    void saveKernelValues(); 
 
 private:
-    QLineEdit *kernelInputs[9]; // Array para armazenar os campos de entrada do kernel 3x3
+    QLineEdit *kernelInputs[9]; 
     void gaussianFilter();
     void laplacianFilter();
     void highPassFilter();
@@ -24,6 +24,9 @@ private:
     void prewittHyFilter();
     void sobelHxFilter();
     void sobelHyFilter();
+
+signals:
+    void convolution(const  std::vector<std::vector<float>> &kernel);
 };
 
 #endif // CONVOLUTIONWINDOW_H

@@ -29,6 +29,9 @@ public:
     ImageViewer(QWidget *parent = nullptr);
     bool loadFile(const QString &);
 
+public slots:
+    void convolution(const  std::vector<std::vector<float>> &kernel);
+
 private slots:
     void open();
     void saveAs();
@@ -61,7 +64,7 @@ private:
     void rotateRight();
     void histogramEqualization();
     void grayScaleHistogramMatching();
-    void conv2d();
+    void showConvWindow();
 
     QImage image;
     QImage resultImage;
@@ -94,6 +97,8 @@ private:
     QAction *histogramEqualizationAct;
     QAction *grayScaleHistogramMatchingAct;
     QAction *conv2dAct;
+    QAction *showConvWindowAct;
+
 };
 
 #endif
