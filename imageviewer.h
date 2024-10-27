@@ -50,9 +50,15 @@ private:
     void flipVertically();
     void convertToGreyScale();
     void greyScaleQuantization();
+    void grayScaleHistogram();
     void resetImage();
     void scaleImage(double factor);
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
+    void brightness();
+    void contrast();
+    void negative();
+    void rotateLeft();
+    void rotateRight();
 
     QImage image;
     QImage resultImage;
@@ -76,6 +82,12 @@ private:
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;
+    QAction *histogramAct;
+    QAction *brightnessAct;
+    QAction *contrastAct;
+    QAction *negativeAct;
+    QAction *rotateLeftAct;
+    QAction *rotateRightAct;
 };
 
 #endif

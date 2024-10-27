@@ -21,6 +21,7 @@
 #include <QGroupBox>
 #include <cstring>
 
+
 #if defined(QT_PRINTSUPPORT_LIB)
 #  include <QtPrintSupport/qtprintsupportglobal.h>
 
@@ -141,6 +142,12 @@ void ImageViewer::setImage(const QImage &newImage)
     convertToGreyScaleAct->setEnabled(true);
     greyScaleQuantizationAct->setEnabled(true);
     resetImageAct->setEnabled(true);
+    histogramAct->setEnabled(true);
+    brightnessAct->setEnabled(true);
+    contrastAct->setEnabled(true);
+    negativeAct->setEnabled(true);
+    rotateLeftAct->setEnabled(true);
+    rotateRightAct->setEnabled(true);
     
     scaleFactor = 1.0;
 
@@ -313,6 +320,15 @@ void ImageViewer::createActions()
     greyScaleQuantizationAct = editMenu->addAction(tr("Grey Scale &Quantization"), this, &ImageViewer::greyScaleQuantization);
     greyScaleQuantizationAct->setEnabled(false);
 
+    brightnessAct = editMenu->addAction(tr("&Brightness"), this, &ImageViewer::brightness);
+    brightnessAct->setEnabled(false);
+
+    contrastAct = editMenu->addAction(tr("&Contrast"), this, &ImageViewer::contrast);
+    contrastAct->setEnabled(false);
+
+    negativeAct = editMenu->addAction(tr("&Negative"), this, &ImageViewer::negative);
+    negativeAct->setEnabled(false);
+
     resetImageAct = editMenu->addAction(tr("&Reset Image"), this, &ImageViewer::resetImage);
     resetImageAct->setEnabled(false);
 
@@ -326,9 +342,20 @@ void ImageViewer::createActions()
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
     zoomOutAct->setEnabled(false);
 
+    rotateLeftAct = viewMenu->addAction(tr("&Rotate 90 degrees Left"), this, &ImageViewer::rotateLeft);
+    rotateLeftAct->setEnabled(false);
+
+    rotateRightAct = viewMenu->addAction(tr("&Rotate 90 degrees Right"), this, &ImageViewer::rotateRight);
+    rotateRightAct->setEnabled(false);
+
     normalSizeAct = viewMenu->addAction(tr("&Normal Size"), this, &ImageViewer::normalSize);
     normalSizeAct->setShortcut(tr("Ctrl+S"));
     normalSizeAct->setEnabled(false);
+
+    QMenu *analyzeMenu = menuBar()->addMenu(tr("&Analyze"));
+
+    histogramAct = analyzeMenu->addAction(tr("&Grayscale Histogram"), this, &ImageViewer::grayScaleHistogram);
+    histogramAct->setEnabled(false);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
 
@@ -342,6 +369,17 @@ void ImageViewer::updateActions()
     zoomInAct->setEnabled(!image.isNull());
     zoomOutAct->setEnabled(!image.isNull());
     normalSizeAct->setEnabled(!image.isNull());
+    flipHorizontallyAct->setEnabled(!image.isNull());
+    flipVerticallyAct->setEnabled(!image.isNull());
+    convertToGreyScaleAct->setEnabled(!image.isNull());
+    greyScaleQuantizationAct->setEnabled(!image.isNull());
+    resetImageAct->setEnabled(!image.isNull());
+    histogramAct->setEnabled(!image.isNull());
+    brightnessAct->setEnabled(!image.isNull());
+    contrastAct->setEnabled(!image.isNull());
+    negativeAct->setEnabled(!image.isNull());
+    rotateLeftAct->setEnabled(!image.isNull());
+    rotateRightAct->setEnabled(!image.isNull());
 }
 
 void ImageViewer::scaleImage(double factor)
@@ -499,3 +537,212 @@ void ImageViewer::resetImage()
     scale();
 }
 
+void ImageViewer::grayScaleHistogram()
+{
+    if (resultImage.isNull()) {
+        return;
+    } 
+
+    int histogram[256] = {0};
+
+    QImage resultImageGray = resultImage.convertToFormat(QImage::Format_Grayscale8);
+
+    for (int i = 0; i < resultImageGray.width(); i++) {
+        for (int j = 0; j < resultImageGray.height(); j++) {
+            QRgb pixel = resultImageGray.pixel(i, j);
+            int value = qGray(pixel);
+            histogram[value]++;
+        }
+    }
+
+    int max = *std::max_element(histogram, histogram + 256);
+
+    int histWidth = 512;
+    int histHeight = 400;
+    QImage histogramImage(histWidth, histHeight, QImage::Format_RGB32);
+    histogramImage.fill(QColor(230, 230, 230));  // Light gray background
+
+    QPainter painter(&histogramImage);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // Set pen and brush for histogram bars
+    QPen pen(Qt::blue);  
+    painter.setPen(pen);
+    painter.setBrush(QColor(0, 120, 215)); 
+
+    // Draw the histogram bars
+    for (int i = 0; i < 256; i++) {
+        int binWidth = histWidth / 256;
+        int binHeight = (histogram[i] * histHeight) / max;
+        painter.drawRect(i * binWidth, histHeight - binHeight, binWidth - 1, binHeight);
+    }
+
+    // Add x and y axis labels
+    QFont font = painter.font();
+    font.setPointSize(10);
+    painter.setFont(font);
+
+    painter.setPen(Qt::black);
+    painter.drawText(histWidth / 2 - 20, histHeight - 10, "Pixel Value");  // X-axis label
+    painter.rotate(-90);
+    painter.drawText(-histHeight / 2 - 40, 20, "Frequency");  // Y-axis label
+    painter.resetTransform();
+
+    // Create a new window to display the histogram
+    QLabel *histogramLabel = new QLabel;
+    histogramLabel->setPixmap(QPixmap::fromImage(histogramImage));
+    histogramLabel->setAlignment(Qt::AlignCenter);
+
+    QScrollArea *scrollAreaHistogram = new QScrollArea;
+    scrollAreaHistogram->setWidget(histogramLabel);
+    scrollAreaHistogram->setAlignment(Qt::AlignCenter);
+    scrollAreaHistogram->setWidgetResizable(true);
+
+    QVBoxLayout *histogramLayout = new QVBoxLayout;
+    histogramLayout->addWidget(scrollAreaHistogram);
+
+    QWidget *histogramWindow = new QWidget;
+    histogramWindow->setLayout(histogramLayout);
+    histogramWindow->setWindowTitle(tr("Grayscale Histogram"));
+    histogramWindow->resize(histWidth + 50, histHeight + 50);  // Increase height to accommodate labels
+    histogramWindow->show();
+}
+
+void ImageViewer::brightness()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    QString input = QInputDialog::getText(this, tr("Brightness"), tr("Enter the brightness value:\nValue must be between -255 and 255."));
+    int brightness = input.toInt();
+
+    if (brightness < -255 || brightness > 255) {
+        QMessageBox::warning(this, tr("Error"), tr("Brightness value must be between -255 and 255."));
+        return;
+    }
+
+    if (resultImage.format() == QImage::Format_Grayscale8) {
+        for (int i = 0; i < resultImage.width(); i++) {
+            for (int j = 0; j < resultImage.height(); j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int value = qGray(pixel) + brightness;
+                value = std::max(0, std::min(value, 255));
+                resultImage.setPixel(i, j, qRgb(value, value, value));
+            }
+        }
+    } else {
+        for (int i = 0; i < resultImage.width(); i++) {
+            for (int j = 0; j < resultImage.height(); j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int r = qRed(pixel) + brightness;
+                int g = qGreen(pixel) + brightness;
+                int b = qBlue(pixel) + brightness;
+
+                r = std::max(0, std::min(r, 255));
+                g = std::max(0, std::min(g, 255));
+                b = std::max(0, std::min(b, 255));
+
+                resultImage.setPixel(i, j, qRgb(r, g, b));
+            }
+        }
+    }
+    scale();
+}
+
+void ImageViewer::contrast()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    QString input = QInputDialog::getText(this, tr("Contrast"), tr("Enter the contrast value:\nValue must be greater than 0 and less than or equal to 255."));
+    float contrast = input.toFloat();
+
+    if (contrast <= 0 || contrast > 10) {
+        QMessageBox::warning(this, tr("Error"), tr("Contrast value must be greater than 0 and less than or equal to 255."));
+        return;
+    }
+
+    if (resultImage.format() == QImage::Format_Grayscale8) {
+        for (int i = 0; i < resultImage.width(); i++) {
+            for (int j = 0; j < resultImage.height(); j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int value = qGray(pixel) * contrast;
+                value = std::max(0, std::min(value, 255));
+                resultImage.setPixel(i, j, qRgb(value, value, value));
+            }
+        }
+    } else {
+        for (int i = 0; i < resultImage.width(); i++) {
+            for (int j = 0; j < resultImage.height(); j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int r = qRed(pixel) * contrast;
+                int g = qGreen(pixel) * contrast;
+                int b = qBlue(pixel) * contrast;
+
+                r = std::max(0, std::min(r, 255));
+                g = std::max(0, std::min(g, 255));
+                b = std::max(0, std::min(b, 255));
+
+                resultImage.setPixel(i, j, qRgb(r, g, b));
+            }
+        }
+    }
+    scale();
+}
+
+void ImageViewer::negative() 
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    if (resultImage.format() == QImage::Format_Grayscale8) {
+        for (int i = 0; i < resultImage.width(); i++) {
+            for (int j = 0; j < resultImage.height(); j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int value = 255 - qGray(pixel);
+                resultImage.setPixel(i, j, qRgb(value, value, value));
+            }
+        }
+    } else {
+        for (int i = 0; i < resultImage.width(); i++) {
+            for (int j = 0; j < resultImage.height(); j++) {
+                QRgb pixel = resultImage.pixel(i, j);
+                int r = 255 - qRed(pixel);
+                int g = 255 - qGreen(pixel);
+                int b = 255 - qBlue(pixel);
+
+                resultImage.setPixel(i, j, qRgb(r, g, b));
+            }
+        }
+    }
+    scale();
+}
+
+void ImageViewer::rotateLeft()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    QTransform transform;
+    transform.rotate(-90);
+
+    resultImage = resultImage.transformed(transform);
+    scale();
+}
+
+void ImageViewer::rotateRight()
+{
+    if (resultImage.isNull()) {
+        return;
+    }
+
+    QTransform transform;
+    transform.rotate(90);
+
+    resultImage = resultImage.transformed(transform);
+    scale();
+}
