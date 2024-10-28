@@ -474,11 +474,11 @@ void ImageViewer::createActions()
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 
-    zoomInAct = viewMenu->addAction(tr("Zoom &In (25%)"), this, &ImageViewer::zoomIn);
+    zoomInAct = viewMenu->addAction(tr("Zoom &In"), this, &ImageViewer::zoomIn);
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
     zoomInAct->setEnabled(false);
 
-    zoomOutAct = viewMenu->addAction(tr("Zoom &Out (25%)"), this, &ImageViewer::zoomOut);
+    zoomOutAct = viewMenu->addAction(tr("Zoom &Out"), this, &ImageViewer::zoomOut);
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
     zoomOutAct->setEnabled(false);
 
@@ -803,7 +803,7 @@ void ImageViewer::contrast()
     QString input = QInputDialog::getText(this, tr("Contrast"), tr("Enter the contrast value:\nValue must be greater than 0 and less than or equal to 255."));
     float contrast = input.toFloat();
 
-    if (contrast <= 0 || contrast > 10) {
+    if (contrast <= 0 || contrast > 255) {
         QMessageBox::warning(this, tr("Error"), tr("Contrast value must be greater than 0 and less than or equal to 255."));
         return;
     }
@@ -927,7 +927,7 @@ void ImageViewer::histogramEqualization() {
         int cdf[256] = {0};
         float alpha = 255.0f / numPixels;
 
-        // Cálculo do histograma
+        // Histogram calculation
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 int value = qGray(resultImage.pixel(i, j));
@@ -935,14 +935,14 @@ void ImageViewer::histogramEqualization() {
             }
         }
 
-        // Cálculo do histograma cumulativo (CDF)
+        // Cumulative histogram calculation (CDF)
         cdf[0] = static_cast<int>(std::round(alpha * histogram[0]));
         for (int i = 1; i < 256; i++) {
             cdf[i] = cdf[i - 1] + static_cast<int>(std::round(alpha * histogram[i]));
             cdf[i] = std::min(255, cdf[i]); // Limitando o valor entre 0 e 255
         }
 
-        // Aplicação do histograma cumulativo na imagem
+        // Applying the cumulative histogram to the image
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 int value = qGray(resultImage.pixel(i, j));
@@ -1017,7 +1017,7 @@ void ImageViewer::histogramEqualization() {
 
         grayScaleHistogram();
 
-    } else { // Para imagens coloridas
+    } else { // Color image
         int histogramR[256] = {0};
         int histogramG[256] = {0};
         int histogramB[256] = {0};
@@ -1026,7 +1026,6 @@ void ImageViewer::histogramEqualization() {
         int cdfB[256] = {0};
         float alpha = 255.0f / numPixels;
 
-        // Cálculo dos histogramas
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 QRgb pixel = resultImage.pixel(i, j);
@@ -1036,7 +1035,6 @@ void ImageViewer::histogramEqualization() {
             }
         }
 
-        // Cálculo dos histogramas cumulativos (CDF)
         cdfR[0] = static_cast<int>(std::round(alpha * histogramR[0]));
         cdfG[0] = static_cast<int>(std::round(alpha * histogramG[0]));
         cdfB[0] = static_cast<int>(std::round(alpha * histogramB[0]));
@@ -1046,7 +1044,6 @@ void ImageViewer::histogramEqualization() {
             cdfB[i] = std::min(255, cdfB[i - 1] + static_cast<int>(std::round(alpha * histogramB[i])));
         }
 
-        // Aplicação do histograma cumulativo na imagem
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 QRgb pixel = resultImage.pixel(i, j);
