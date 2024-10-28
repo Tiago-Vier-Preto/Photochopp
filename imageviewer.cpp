@@ -865,18 +865,30 @@ void ImageViewer::negative()
     scale();
 }
 
-void ImageViewer::rotateLeft()
+void ImageViewer::rotateLeft() 
 {
     if (resultImage.isNull()) {
         return;
     }
 
-    QTransform transform;
-    transform.rotate(-90);
+    int originalWidth = resultImage.width();
+    int originalHeight = resultImage.height();
 
-    resultImage = resultImage.transformed(transform);
+    QImage rotatedImage(originalHeight, originalWidth, resultImage.format());
+
+    for (int y = 0; y < originalHeight; ++y) {
+        for (int x = 0; x < originalWidth; ++x) {
+            QColor color = resultImage.pixelColor(x, y);
+
+            rotatedImage.setPixelColor(y, originalWidth - 1 - x, color);
+        }
+    }
+
+    resultImage = rotatedImage;
     scale();
 }
+
+
 
 void ImageViewer::rotateRight()
 {
@@ -884,10 +896,20 @@ void ImageViewer::rotateRight()
         return;
     }
 
-    QTransform transform;
-    transform.rotate(90);
+    int originalWidth = resultImage.width();
+    int originalHeight = resultImage.height();
 
-    resultImage = resultImage.transformed(transform);
+    QImage rotatedImage(originalHeight, originalWidth, resultImage.format());
+
+    for (int y = 0; y < originalHeight; ++y) {
+        for (int x = 0; x < originalWidth; ++x) {
+            QColor color = resultImage.pixelColor(x, y);
+
+            rotatedImage.setPixelColor(originalHeight - 1 - y, x, color);
+        }
+    }
+
+    resultImage = rotatedImage;
     scale();
 }
 
