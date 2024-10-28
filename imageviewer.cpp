@@ -259,9 +259,76 @@ void ImageViewer::paste()
 #endif // !QT_NO_CLIPBOARD
 }
 
-void ImageViewer::zoomIn()
-{
-    scaleImage(1.25);
+void ImageViewer::zoomIn() {
+
+    int originalWidth = resultImage.width();
+    int originalHeight = resultImage.height();
+    
+    int newWidth = originalWidth * 2;
+    int newHeight = originalHeight * 2;
+
+    QImage enlargedImage(newWidth, newHeight, QImage::Format_RGB32);
+    
+    for (int y = 0; y < originalHeight; ++y) {
+        for (int x = 0; x < originalWidth; ++x) {
+            QColor color = resultImage.pixelColor(x, y);
+            
+
+            enlargedImage.setPixelColor(2 * x, 2 * y, color);
+
+            // Set the pixel color in the other positions as white
+            enlargedImage.setPixelColor(2 * x + 1, 2 * y, QColor(255, 255, 255)); // direita
+            enlargedImage.setPixelColor(2 * x, 2 * y + 1, QColor(255, 255, 255)); // abaixo
+            enlargedImage.setPixelColor(2 * x + 1, 2 * y + 1, QColor(255, 255, 255)); // diagonal
+        }
+    }
+
+    // Rows interpolation
+    for (int y = 0; y < newHeight; y += 2) {
+        for (int x = 1; x < newWidth - 1; x += 2) {
+            QColor leftColor = enlargedImage.pixelColor(x - 1, y);
+            QColor rightColor = enlargedImage.pixelColor(x + 1, y);
+            
+            int avgR = (leftColor.red() + rightColor.red()) / 2;
+            int avgG = (leftColor.green() + rightColor.green()) / 2;
+            int avgB = (leftColor.blue() + rightColor.blue()) / 2;
+            
+            enlargedImage.setPixelColor(x, y, QColor(avgR, avgG, avgB));
+        }
+    }
+
+    // Columns interpolation
+    for (int x = 0; x < newWidth; ++x) {
+        for (int y = 1; y < newHeight - 1; y += 2) {
+            QColor topColor = enlargedImage.pixelColor(x, y - 1);
+            QColor bottomColor = enlargedImage.pixelColor(x, y + 1);
+            
+            int avgR = (topColor.red() + bottomColor.red()) / 2;
+            int avgG = (topColor.green() + bottomColor.green()) / 2;
+            int avgB = (topColor.blue() + bottomColor.blue()) / 2;
+            
+            enlargedImage.setPixelColor(x, y, QColor(avgR, avgG, avgB));
+        }
+    }
+
+    // Diagonal pixels
+    for (int y = 1; y < newHeight - 1; y += 2) {
+        for (int x = 1; x < newWidth - 1; x += 2) {
+            QColor topLeftColor = enlargedImage.pixelColor(x - 1, y - 1);
+            QColor topRightColor = enlargedImage.pixelColor(x + 1, y - 1);
+            QColor bottomLeftColor = enlargedImage.pixelColor(x - 1, y + 1);
+            QColor bottomRightColor = enlargedImage.pixelColor(x + 1, y + 1);
+
+            int avgR = (topLeftColor.red() + topRightColor.red() + bottomLeftColor.red() + bottomRightColor.red()) / 4;
+            int avgG = (topLeftColor.green() + topRightColor.green() + bottomLeftColor.green() + bottomRightColor.green()) / 4;
+            int avgB = (topLeftColor.blue() + topRightColor.blue() + bottomLeftColor.blue() + bottomRightColor.blue()) / 4;
+
+            enlargedImage.setPixelColor(x, y, QColor(avgR, avgG, avgB));
+        }
+    }
+
+    resultImage = enlargedImage;
+    scale();
 }
 
 void ImageViewer::zoomOut()
@@ -1071,6 +1138,8 @@ void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
         {-1, -1, -1}
     };
 
+    bool flag = kernel != highPassFilter && kernel != gaussianFilter;
+
     int kernelSize = kernel.size();
     int kernelRadius = kernelSize / 2;
 
@@ -1084,7 +1153,7 @@ void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
                         sum += qGray(pixel) * kernel[k + kernelRadius][l + kernelRadius];
                     }
                 }
-                if (kernel != highPassFilter || kernel != gaussianFilter) {
+                if (flag) {
                     sum += 127;
                 }
                 sum = std::max(0.0f, std::min(sum, 255.0f));
@@ -1103,7 +1172,7 @@ void ImageViewer::convolution(const std::vector<std::vector<float>> &kernel)
                         sumB += qBlue(pixel) * kernel[k + kernelRadius][l + kernelRadius];
                     }
                 }
-                if (kernel != highPassFilter || kernel != gaussianFilter) {
+                if (flag) {
                     sumR += 127;
                     sumG += 127;
                     sumB += 127;
